@@ -3,10 +3,9 @@ package gopdf
 import (
 	"bytes"
 	"errors"
-	ioutil "io/ioutil"
 	"log"
 	"os"
-	//"container/list"
+	"io"
 	"fmt"
 	"strconv"
 	"strings"
@@ -253,34 +252,26 @@ func (gp *GoPdf) SetFont(family string, style string, size int) error {
 	return nil
 }
 
-//WritePdf : wirte pdf file
-func (gp *GoPdf) WritePdf(pdfPath string) {
-	ioutil.WriteFile(pdfPath, gp.GetBytesPdf(), 0644)
+//WriteFile : wirte pdf file
+func (gp *GoPdf) WriteFile(filename string, perm os.FileMode) error {
+	f, err := os.OpenFile(filename, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, perm)
+	if err != nil {
+		return err
+	}
+	if err := gp.Encode(f); err != nil {
+		return err
+	}
+	if err1 := f.Close(); err == nil {
+		err = err1
+	}
+	return err
 }
 
 //GetBytesPdfReturnErr : get bytes of pdf file
 func (gp *GoPdf) GetBytesPdfReturnErr() ([]byte, error) {
-	gp.prepare()
 	buff := new(bytes.Buffer)
-	i := 0
-	max := len(gp.pdfObjs)
-	buff.WriteString("%PDF-1.7\n\n")
-	linelens := make([]int, max)
-	for i < max {
-		linelens[i] = buff.Len()
-		pdfObj := gp.pdfObjs[i]
-		err := pdfObj.Build()
-		if err != nil {
-			return nil, err
-		}
-		buff.WriteString(strconv.Itoa(i+1) + " 0 obj\n")
-		buffbyte := pdfObj.GetObjBuff().Bytes()
-		buff.Write(buffbyte)
-		buff.WriteString("endobj\n\n")
-		i++
-	}
-	gp.xref(linelens, buff, &i)
-	return buff.Bytes(), nil
+	err := gp.Encode(buff)
+	return buff.Bytes(), err
 }
 
 //GetBytesPdf : get bytes of pdf file
@@ -290,6 +281,46 @@ func (gp *GoPdf) GetBytesPdf() []byte {
 		log.Fatalf("%s", err.Error())
 	}
 	return b
+}
+
+func (gp *GoPdf) Encode(w io.Writer) error {
+	gp.prepare()
+	i := 0
+	max := len(gp.pdfObjs)
+	count, err := w.Write([]byte("%PDF-1.7\n\n"))
+	if err != nil {
+		return err
+	}
+	linelens := make([]int, max)
+	for i < max {
+		linelens[i] = count
+		pdfObj := gp.pdfObjs[i]
+		err := pdfObj.Build()
+		if err != nil {
+			return err
+		}
+		n, err := w.Write([]byte(strconv.Itoa(i+1) + " 0 obj\n"))
+		if err != nil {
+			return err
+		}
+		count += n
+		buffbyte := pdfObj.GetObjBuff().Bytes()
+		n, err = w.Write(buffbyte)
+		if err != nil {
+			return err
+		}
+		count += n
+		n, err = w.Write([]byte("endobj\n\n"))
+		if err != nil {
+			return err
+		}
+		count += n
+		i++
+	}
+	buff := &bytes.Buffer{}
+	gp.xref(linelens, buff, &i)
+	_, err = w.Write(buff.Bytes())
+	return err
 }
 
 //Cell : create cell of text
