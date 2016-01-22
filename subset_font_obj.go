@@ -4,13 +4,13 @@ import (
 	"bytes"
 	"fmt"
 
-	"github.com/signintech/gopdf/fontmaker/core"
+	"github.com/janos/gopdf/fontmaker"
 )
 
 //PdfType0 Font
 type SubsetFontObj struct {
 	buffer                bytes.Buffer
-	ttfp                  core.TTFParser
+	ttfp                  fontmaker.TTFParser
 	Family                string
 	CharacterToGlyphIndex map[rune]uint64
 	CountOfFont           int
@@ -136,7 +136,7 @@ func (s *SubsetFontObj) GlyphIndexToPdfWidth(glyphIndex uint64) uint64 {
 	return width * 1000 / unitsPerEm
 }
 
-func (s *SubsetFontObj) GetTTFParser() *core.TTFParser {
+func (s *SubsetFontObj) GetTTFParser() *fontmaker.TTFParser {
 	return &s.ttfp
 }
 

@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"fmt"
 
-	"github.com/signintech/gopdf/fontmaker/core"
+	"github.com/janos/gopdf/fontmaker"
 )
 
 type SubfontDescriptorObj struct {
@@ -54,5 +54,5 @@ func (s *SubfontDescriptorObj) SetPtrToSubsetFontObj(ptr *SubsetFontObj) {
 }
 
 func DesignUnitsToPdf(val int64, unitsPerEm uint64) int64 {
-	return core.Round(float64(float64(val) * 1000.00 / float64(unitsPerEm)))
+	return fontmaker.Round(float64(float64(val) * 1000.00 / float64(unitsPerEm)))
 }
